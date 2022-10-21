@@ -674,7 +674,6 @@ void move_back(struct piece (*board)[BHEIGHT], char *word)
     }
     else
         swap((*(board + Erow) + Ecol), (*(board + Srow) + Scol));
-    
 }
 
 /*.......record stack........*/
@@ -719,31 +718,65 @@ void GetSeek(FILE *fptr, int *line) //指針回到上一行
     *line--;
 }
 
-// every watcher type has its own typedef'd struct with the name ev_TYPE
+/*...............timer...............*/
+int turns;
+int now;
+int c = 0;
+int indepx = 0, indepy = 0;
 ev_io stdin_watcher;
-ev_timer timeout_watcher;
+ev_timer timeout_watcherx;
+ev_timer timeout_watchery;
 
-// all watcher callbacks have a similar signature
-// this callback is called when data is readable on stdin
-static void stdin_cb (EV_P_ ev_io *w, int revents)
+static void stdin_cb(EV_P_ ev_io *w, int revents)
 {
-	puts("stdin ready");
-	// for one-shot events, one must manually stop the watcher
-	// with its corresponding stop function.
-	ev_io_stop(EV_A_ w);
-
-	// this causes all nested ev_run's to stop iterating
-	ev_break(EV_A_ EVBREAK_ALL);
+    ev_timer_stop(loop, &timeout_watcherx);
+    ev_timer_stop(loop, &timeout_watchery);
+    if (turns % 2)
+    {
+        ev_timer_stop(loop, &timeout_watcherx);
+        ev_timer_start(loop, &timeout_watchery);
+    }
+    else
+    {
+        ev_timer_stop(loop, &timeout_watchery);
+        ev_timer_start(loop, &timeout_watcherx);
+    }
 }
-
-// another callback, this time for a time-out
-static void timeout_cb (EV_P_ ev_timer *w, int revents)
+static void timeout_cbx(EV_P_ ev_timer *w, int revents)
 {
-	puts("timeout");
-	// this causes the innermost ev_run to stop iterating
-	ev_break(EV_A_ EVBREAK_ONE);
+    if (turns == 0)
+    {
+        printf("\033[34m藍方\033[m這回合用時: ");
+        printf("%d 秒\n", (int)ev_now(loop) - now); // first time
+        indepx = (int)ev_now(loop) - now;
+        printf("\033[34m藍方\033[m累計用時: %d 秒\n\n", indepx);
+    }
+    else
+    {
+        printf("\033[34m藍方\033[m這回合用時: ");
+        printf("%d 秒\n", (int)ev_now(loop) - now - indepx);
+        indepx = (int)ev_now(loop) - now;
+        // printf("cby\n");
+        printf("\033[34m藍方\033[m累計用時: %d 秒\n\n", indepx);
+    }
+    // printf("cbx\n");
+    ev_timer_stop(loop, &timeout_watcherx);
+    ev_break(loop, EVBREAK_ONE);
+    // printf("InCBX,turns++\n\n\n");
+    turns += 1;
 }
-
+static void timeout_cby(EV_P_ ev_timer *w, int revents)
+{
+    printf("\033[31m紅方\033[m這回合用時: ");
+    printf("%d 秒\n", (int)ev_now(loop) - now - indepy);
+    indepy = (int)ev_now(loop) - now;
+    printf("\033[31m紅方\033[m累計用時: %d 秒\n\n", indepy);
+    // printf("cby\n");
+    ev_timer_stop(loop, &timeout_watchery);
+    ev_break(loop, EVBREAK_ONE);
+    // printf("InCBY,turns++\n\n\n");
+    turns += 1;
+}
 
 /*.................................................main.......................................*/
 int main(int argc, char *argv[]) // int argc, char *argv[]
@@ -825,6 +858,16 @@ int main(int argc, char *argv[]) // int argc, char *argv[]
     }
 
     /*........................Play Game...........................*/
+    /*...........timer..........*/
+    turns = 0;
+    struct ev_loop *loop = EV_DEFAULT;
+    now = ev_now(loop);
+    int x, y, z;
+    ev_io_init(&stdin_watcher, stdin_cb, /*STDIN_FILENO*/ 0, EV_READ);
+    ev_io_start(loop, &stdin_watcher);
+    ev_timer_init(&timeout_watcherx, timeout_cbx, 0, 1);
+    ev_timer_init(&timeout_watchery, timeout_cby, 0, 1);
+
     while (mode == NEW_GAME)
     {
         input_movement(&turn, &alpha, &input_Srow, &input_Ecol, &input_Erow);
@@ -868,6 +911,28 @@ int main(int argc, char *argv[]) // int argc, char *argv[]
             printf("\n%s從(%d,%d)移動到(%d,%d)\n\n", board[tr_Erow][tr_Ecol].name, input_Scol, input_Srow, input_Ecol, input_Erow);
             // printf("top:%d\n", record.top);
             // printf("word:%s\n", record.word[record.top]);
+
+            // timer
+            // printf("turns: %d\n",turns+1);
+            if (turns % 2 == 0)
+            {
+                // printf("input: ");
+                // scanf(" %d",&x);
+                ev_timer_start(loop, &timeout_watcherx);
+                printf("第 %d 回合\n", turns / 2 + 1);
+            }
+            else
+            {
+                // printf("input:");
+                // scanf(" %d",&x);
+                ev_timer_start(loop, &timeout_watchery);
+                printf("第 %d 回合\n", turns / 2 + 1);
+            }
+            ev_run(loop, 0);
+
+            // printf("Outside!\n");
+            ev_timer_stop(loop, &timeout_watcherx);
+            ev_timer_stop(loop, &timeout_watchery);
             board_show(board);
         }
         else if (alpha == 's' || alpha == 'S')
@@ -891,11 +956,11 @@ int main(int argc, char *argv[]) // int argc, char *argv[]
 
     char forb = ' ';
     while (mode == LOAD_FILE)
-    {        
+    {
         printf("輸入 f 移動下一手，輸入 b 退回上一手:");
         scanf("%s", &forb);
         if (forb == 'f')
-        {            
+        {
             record.top++;
             input_Scol = record.word[record.top][1] - 48;
             input_Srow = record.word[record.top][2] - 48;
@@ -929,25 +994,6 @@ int main(int argc, char *argv[]) // int argc, char *argv[]
     }
 
     fclose(fptr);
-
-/*........................timer...........................*/
-    // // use the default event loop unless you have special needs
-	// // struct ev_loop *loop = EV_DEFAULT; /* OR ev_default_loop(0) */
-	// EV_P EV_DEFAULT;
-
-	// // initialise an io watcher, then start it
-	// // this one will watch for stdin to become readable
-	// ev_io_init(&stdin_watcher, stdin_cb, /*STDIN_FILENO*/ 0, EV_READ);
-	// ev_io_start(EV_A_ &stdin_watcher);
-
-	// // initialise a timer watcher, then start it
-	// // simple non-repeating 5.5 second timeout
-	// ev_timer_init(&timeout_watcher, timeout_cb, 5.5, 0.);
-	// ev_timer_start(EV_A_ &timeout_watcher);
-
-	// ev_run(EV_A_ 0); /* now wait for events to arrive */
-
-	// ev_loop_destroy(EV_A);
 
     return 0;
 }
