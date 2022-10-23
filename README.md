@@ -13,7 +13,8 @@
 
 ```sh
 # Compile
-g++ -o main main.cpp
+gcc -o main main.c -lev
 # Run
-./main
+./main -n -s NewGame.txt # New game
+./main -1 NewGame.txt # Load file
 ```
