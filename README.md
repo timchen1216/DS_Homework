@@ -2,12 +2,13 @@
 
 ## 程式架構
 
-* Basic
-使用只有一層的hidden layer 的 fully connected Neural Network(簡稱FCNN)
+* 顯示棋盤
 
-* activation function
-使用 sigmoid
-* loss function 使用 MSE
+* 移動
+
+* 讀檔
+
+* 計時
 
 ## Compile & Run
 
