@@ -2,7 +2,7 @@
 
 ## 程式架構
 
-* Neural Network
+* Basic
 使用只有一層的hidden layer 的 fully connected Neural Network(簡稱FCNN)
 
 * activation function
