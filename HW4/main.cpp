@@ -54,7 +54,7 @@ int main()
 		cout << ch << "\t" << arr1[ch].prob << "\t\t" << arr1[ch].range_from << "\t\t" << arr1[ch].range_to << endl;
 	}
 	cout << endl;
-	string s = "acdeb";
+	string s = "abcde";
 	//cout << "Enter text: ";
 	//cin >> s;
 	START_arcd = clock();
