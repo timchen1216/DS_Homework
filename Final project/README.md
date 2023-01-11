@@ -18,3 +18,7 @@ Simplifies dense cash flows
   - 4. Go back to step 3 until the amount owed is paid in full. O(n)
 
 Time complexity = O(nlogn) + O(nlogn) + O(1) * O(n) = O(nlogn)
+
+### Compile & Run
+  - Compile : g++ -o algo algo.cpp
+  - Run : ./algo
